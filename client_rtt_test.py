@@ -1,32 +1,48 @@
-import requests
-import subprocess
+import socket
+import random
+import string
 
-server_ip = '192.168.183.130'
-port = 12400
-receive_window_size = 4096  # Set receive window size to 4 KB
+SERVER_IP = '166.104.246.42'
+SERVER_PORT = 8000
+RECV_WINDOW_SIZE = 4096
 
-def set_congestion_control_algorithm():
-    subprocess.run(["sysctl", "-w", "net.ipv4.tcp_congestion_control=cubic"])
+def set_congestion_control_algorithm(sock):
+    # Set TCP congestion control algorithm to Cubic
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_CONGESTION, b'cubic')
 
-def set_receive_window_size():
-    global receive_window_size
-    subprocess.run(["sysctl", "-w", f"net.ipv4.tcp_rmem='{receive_window_size} {receive_window_size} {receive_window_size}'"])
+def set_receive_window_size(sock, size):
+    # Set receive window size
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, size)
 
-def main():
-    # Set the congestion control algorithm to Cubic
-    set_congestion_control_algorithm()
+def get_random_data(sock):
+    # Send GET request
+    sock.sendall(b'GET /random HTTP/1.1\r\nHost: localhost\r\n\r\n')
 
-    # Set the receive window size
-    set_receive_window_size()
+    # Receive response
+    response = b''
+    while True:
+        data = sock.recv(4096)
+        if not data:
+            break
+        response += data
 
-    url = f'http://{server_ip}:{port}/random'
-    response = requests.get(url)
-    
-    if response.status_code == 200:
-        print("Received random data:")
-        print(response.text)
-    else:
-        print(f"Error: {response.status_code}")
+    return response
 
-if __name__ == "__main__":
-    main()
+# Create a TCP socket
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    # Set congestion control algorithm
+    set_congestion_control_algorithm(sock)
+
+    # Set receive window size
+    set_receive_window_size(sock, RECV_WINDOW_SIZE)
+
+    # Connect to the server
+    sock.connect((SERVER_IP, SERVER_PORT))
+
+    # Get random data from the server
+    random_data = get_random_data(sock)
+
+# Print the received random data
+print("Received random data:")
+print(random_data.decode('utf-8'))
+
