@@ -1,8 +1,8 @@
 import socket
 import time
 
-SERVER_IP = '166.104.246.42'
-SERVER_PORT = 12500
+SERVER_IP = '54.144.158.134'
+SERVER_PORT = 12400
 
 def set_congestion_control_algorithm(sock):
     # TCP 혼잡 제어 알고리즘을 Cubic으로 설정
